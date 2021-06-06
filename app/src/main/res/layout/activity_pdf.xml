@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:animateLayoutChanges="true">
+
+    <Button
+        android:id="@+id/btnOpenUrl"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:backgroundTint="@color/colorPrimary"
+        android:minWidth="70dp"
+        android:text="URL"
+        android:textColor="#ffffff" />
+
+    <Button
+        android:id="@+id/btnOpenFile"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/btnOpenUrl"
+        android:backgroundTint="@color/colorPrimary"
+        android:minWidth="70dp"
+        android:text="File"
+        android:textColor="#ffffff" />
+
+    <Button
+        android:id="@+id/btnPrint"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/btnOpenFile"
+        android:backgroundTint="@color/colorPrimary"
+        android:minWidth="70dp"
+        android:text="Print"
+        android:textColor="#ffffff"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/btnPrintScreen"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_toEndOf="@id/btnPrint"
+        android:backgroundTint="@color/colorPrimary"
+        android:text="Print Screen"
+        android:textColor="#ffffff" />
+
+    <com.pdf.PdfRendererView
+        android:id="@+id/pdfView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/btnOpenUrl"
+        android:scrollbars="vertical" />
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="gone" />
+</RelativeLayout>
