@@ -20,33 +20,18 @@ import java.net.URL
 class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : RecyclerView(mContext, attrs) {
     private var mListener: StatusCallBack? = null
     private val mAdapter = Adapter(mContext)
-    private var mScaleDetector: ScaleGestureDetector? = null
     private var mFilePath: String? = null
 
     init {
         setHasFixedSize(true)
         adapter = mAdapter
         layoutManager = LinearLayoutManager(mContext)
-        mScaleDetector = ScaleGestureDetector(mContext, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
-            override fun onScale(detector: ScaleGestureDetector?): Boolean {
-                val scale = detector?.scaleFactor ?: return false
-                mScaleFactor = 1.0f.coerceAtLeast((mScaleFactor * scale).coerceAtMost(3.0f))
-                if (mScaleFactor < 3f) {
-                    val centerX = detector.focusX
-                    val centerY = detector.focusY
-                    var diffX = centerX - mPosX
-                    var diffY = centerY - mPosY
-                    diffX = diffX * detector.scaleFactor - diffX
-                    diffY = diffY * detector.scaleFactor - diffY
-                    mPosX -= diffX
-                    mPosY -= diffY
-                }
-                maxWidth = width - width * mScaleFactor
-                maxHeight = height - height * mScaleFactor
-                invalidate()
-                return true
-            }
-        })
+    }
+
+    override fun setAdapter(adapter: RecyclerView.Adapter<*>?) {
+        if (adapter is Adapter) {
+            super.setAdapter(adapter)
+        }
     }
 
     fun setStatusListener(listener: StatusCallBack) {
@@ -178,6 +163,21 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     private var mPosY = 0f
     private var width = 0f
     private var height = 0f
+    private val mScaleDetector = ScaleGestureDetector(mContext, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+        override fun onScale(detector: ScaleGestureDetector): Boolean {
+            mScaleFactor = 1.0f.coerceAtLeast((mScaleFactor * detector.scaleFactor).coerceAtMost(3.0f))
+            if (mScaleFactor < 3f) {
+                val diffX = detector.focusX - mPosX
+                val diffY = detector.focusY - mPosY
+                mPosX -= diffX * detector.scaleFactor - diffX
+                mPosY -= diffY * detector.scaleFactor - diffY
+            }
+            maxWidth = width - width * mScaleFactor
+            maxHeight = height - height * mScaleFactor
+            invalidate()
+            return true
+        }
+    })
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         width = MeasureSpec.getSize(widthMeasureSpec).toFloat()
@@ -188,24 +188,19 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         super.onTouchEvent(ev)
         val action = ev.action
-        mScaleDetector!!.onTouchEvent(ev)
+        mScaleDetector.onTouchEvent(ev)
         when (action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
-                val x = ev.x
-                val y = ev.y
-                mLastTouchX = x
-                mLastTouchY = y
+                mLastTouchX =  ev.x
+                mLastTouchY = ev.y
                 mActivePointerId = ev.getPointerId(0)
             }
             MotionEvent.ACTION_MOVE -> {
-                val pointerIndex = (action and MotionEvent.ACTION_POINTER_INDEX_MASK
-                        shr MotionEvent.ACTION_POINTER_INDEX_SHIFT)
+                val pointerIndex = action and MotionEvent.ACTION_POINTER_INDEX_MASK shr MotionEvent.ACTION_POINTER_INDEX_SHIFT
                 val x = ev.getX(pointerIndex)
                 val y = ev.getY(pointerIndex)
-                val dx = x - mLastTouchX
-                val dy = y - mLastTouchY
-                mPosX += dx
-                mPosY += dy
+                mPosX += x - mLastTouchX
+                mPosY += y - mLastTouchY
                 if (mPosX > 0.0f) mPosX = 0.0f
                 else if (mPosX < maxWidth) mPosX = maxWidth
                 if (mPosY > 0.0f) mPosY = 0.0f
@@ -221,8 +216,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 mActivePointerId = -1
             }
             MotionEvent.ACTION_POINTER_UP -> {
-                val pointerIndex =
-                    action and MotionEvent.ACTION_POINTER_INDEX_MASK shr MotionEvent.ACTION_POINTER_INDEX_SHIFT
+                val pointerIndex = action and MotionEvent.ACTION_POINTER_INDEX_MASK shr MotionEvent.ACTION_POINTER_INDEX_SHIFT
                 val pointerId = ev.getPointerId(pointerIndex)
                 if (pointerId == mActivePointerId) {
                     val newPointerIndex = if (pointerIndex == 0) 1 else 0
@@ -253,7 +247,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         canvas.scale(mScaleFactor, mScaleFactor)
         super.dispatchDraw(canvas)
         canvas.restore()
-        invalidate()
+//        invalidate()
     }
 
     interface StatusCallBack {
