@@ -18,10 +18,10 @@ import java.io.File
 import java.net.URL
 
 class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : RecyclerView(mContext, attrs) {
-
     private var mListener: StatusCallBack? = null
     private val mAdapter = Adapter(mContext)
     private var mScaleDetector: ScaleGestureDetector? = null
+    private var mFilePath: String? = null
 
     init {
         setHasFixedSize(true)
@@ -54,33 +54,39 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         mAdapter.setStatusListener(listener)
     }
 
+    fun getFilePath() = mFilePath
+
     fun rendererUrl(url: String) {
+        mListener?.onDownloadProgress(0)
         GlobalScope.launch(Dispatchers.IO) {
             val outputFile = File(mContext.cacheDir, "downloaded_pdf.pdf")
-            if (outputFile.exists())
+            if (outputFile.exists()) {
                 outputFile.delete()
+            }
             try {
                 val bufferSize = 8192
                 val pdfUrl = URL(url)
                 val connection = pdfUrl.openConnection().apply { connect() }
                 val totalLength = connection.contentLength
-                val inputStream = BufferedInputStream(pdfUrl.openStream(), bufferSize)
+                val inputStream = BufferedInputStream(connection.getInputStream(), bufferSize)
                 val outputStream = outputFile.outputStream()
                 val data = ByteArray(bufferSize)
                 var downloaded = 0
-                var count = inputStream.read(data)
-                do {
+                var count: Int
+                while (inputStream.read(data).also { count = it } != -1) {
                     outputStream.write(data, 0, count)
-                    if (totalLength > 0) {
-                        downloaded += bufferSize
-                        val progress = (downloaded * 100F / totalLength).toInt()
-                        GlobalScope.launch(Dispatchers.Main) {
-                            mListener?.onDownloadProgress(if (progress > 100) 100 else progress)
-                        }
+                    downloaded += count
+                    val progress = (downloaded * 100F / totalLength).toInt()
+                    GlobalScope.launch(Dispatchers.Main) {
+                        mListener?.onDownloadProgress(if (progress > 100) 100 else progress)
                     }
-                } while (inputStream.read(data).also { count = it } != -1)
+                }
+                outputStream.flush()
+                outputStream.close()
+                inputStream.close()
             } catch (e: Exception) {
                 GlobalScope.launch(Dispatchers.Main) { mListener?.onError(e) }
+                return@launch
             }
             GlobalScope.launch(Dispatchers.Main) {
                 rendererFile(outputFile)
@@ -90,6 +96,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     }
 
     fun rendererFile(file: File) {
+        mFilePath = file.path
         mAdapter.rendererFile(file)
     }
 
@@ -98,7 +105,6 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     }
 
     private class Adapter(private val mContext: Context) : RecyclerView.Adapter<Adapter.ViewHolder>() {
-
         private var mPdfRenderer: PdfRenderer? = null
         private var mListener: StatusCallBack? = null
         private val mSavedBitmap = HashMap<Int, Bitmap>()
@@ -131,8 +137,8 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 renderPage(position) {
                     visibility = View.VISIBLE
                     findViewById<ImageView>(R.id.imvPage).apply {
-                        setImageBitmap(it)
                         adjustViewBounds = true
+                        setImageBitmap(it)
                     }
                     if (position == 0) {
                         mListener?.onDisplay()

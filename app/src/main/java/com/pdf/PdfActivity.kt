@@ -28,12 +28,21 @@ class PdfActivity : AppCompatActivity() {
     private val mPdfStatusListener = object : PdfRendererView.StatusCallBack {
         override fun onDisplay() {
             showLoading(false)
-            mBinding.btnPrint.visibility = View.VISIBLE
         }
 
         override fun onError(error: Throwable) {
-            showLoading(false)
             Toast.makeText(this@PdfActivity, error.message, Toast.LENGTH_SHORT).show()
+            showLoading(false)
+            mBinding.progressBarDownload.visibility = View.GONE
+        }
+
+        override fun onDownloadProgress(progress: Int) {
+            mBinding.progressBarDownload.progress = progress
+        }
+
+        override fun onDownloadSuccess() {
+            mBinding.progressBarDownload.visibility = View.GONE
+            showLoading(true)
         }
     }
     private val startPdfFileForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
@@ -63,7 +72,7 @@ class PdfActivity : AppCompatActivity() {
 
         mBinding.pdfView.setStatusListener(mPdfStatusListener)
         mBinding.btnOpenUrl.setOnClickListener {
-            showLoading(true)
+            mBinding.progressBarDownload.visibility = View.VISIBLE
             mBinding.pdfView.rendererUrl(mPdfUrl)
             isUrl = true
         }
@@ -77,6 +86,7 @@ class PdfActivity : AppCompatActivity() {
         mBinding.btnPrint.setOnClickListener {
             val documentAdapter = if (isUrl) {
                 PdfDocumentAdapter(PdfDocumentAdapter.TYPE.URL, mPdfUrl)
+//                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mBinding.pdfView.getFilePath())
             } else {
                 PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mFilePath)
             }
@@ -113,9 +123,9 @@ class PdfActivity : AppCompatActivity() {
         val viewWidth = view.width
         val viewHeight = view.height
         val pageHeight = (view.width * 1.4142).toInt()
-        val bitmap = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
         val pageCount = viewHeight / pageHeight
         val pageInfo = PdfDocument.PageInfo.Builder(viewWidth, pageHeight, 1).create()
+        val bitmap = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
         val documentAdapter = PdfDocumentAdapter(PdfDocumentAdapter.TYPE.Document) {
             for (i in 0..pageCount) {
                 val page = it.startPage(pageInfo)
