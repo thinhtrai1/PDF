@@ -4,4 +4,8 @@ A simple PDF viewer. Can use for url or local file.
 
 ## Dependency
 ```
-implementation 'com.github.thinhtrai1:latest_version'
+implementation 'com.github.thinhtrai1:PDF:latest_version'
+```
+
+## Source
+https://github.com/afreakyelf/Pdf-Viewer.git
