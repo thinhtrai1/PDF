@@ -17,6 +17,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pdf.databinding.ActivityPdfBinding
+import com.thinh.deptrai.PdfRendererView
 import java.io.File
 
 /** for Google-url or SDK < 21, use WebView */
