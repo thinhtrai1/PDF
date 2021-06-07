@@ -1,1 +1,1 @@
--keep class com.thinh.deptrai.PdfRendererView { *; }
+-keep class com.thinh.deptrai.PdfRendererView** { *; }
