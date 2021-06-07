@@ -2,6 +2,6 @@
 A simple PDF viewer. Can use for url or local file.
 
 ## Dependency
-dependencies {
+`dependencies {
     implementation 'com.pdf:1.0'
-}
+}`
