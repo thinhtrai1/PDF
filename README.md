@@ -4,4 +4,4 @@ A simple PDF viewer. Can use for url or local file.
 
 ## Dependency
 ```
-implementation 'com.github.thinhtrai1:Tag'
+implementation 'com.github.thinhtrai1:latest_version'
