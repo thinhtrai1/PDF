@@ -78,7 +78,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                     downloaded += count
                     val progress = (downloaded * 100F / totalLength).toInt()
                     GlobalScope.launch(Dispatchers.Main) {
-                        mListener?.onDownloadProgress(if (progress > 100) 100 else progress)
+                        mListener?.onDownloadProgress(progress)
                     }
                 }
                 outputStream.flush()
