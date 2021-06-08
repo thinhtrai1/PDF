@@ -7,23 +7,24 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.pdf.PdfDocument
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.print.PrintManager
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pdf.databinding.ActivityPdfBinding
 import com.thinh.deptrai.PdfRendererView
 import java.io.File
+import java.io.FileOutputStream
+
 
 /** for Google-url or SDK < 21, use WebView */
 class PdfActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityPdfBinding
-    private var mFilePath: String? = null
     private val mPdfUrl = "http://124.47.187.233:82/api/valuation/pdf/feb5ce89-af57-4fc5-88ef-a3b322e9f51e.pdf"
     private var isUrl = true
     private val mPdfStatusListener = object : PdfRendererView.StatusCallBack {
@@ -49,20 +50,38 @@ class PdfActivity : AppCompatActivity() {
     private val startPdfFileForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
         val data = result.data?.data ?: return@registerForActivityResult
         if (result.resultCode == -1) {
-            val cursor = contentResolver.query(data, arrayOf("_data"), null, null, null)
-            if (cursor?.moveToFirst() == true) {
-                val index = cursor.getColumnIndex("_data")
-                val path = cursor.getString(index)
-                if (path != null) {
-                    mBinding.pdfView.rendererFile(File(path))
-                    mFilePath = path
-                    isUrl = false
-                    showLoading(true)
-                } else {
-                    mPdfStatusListener.onError(Throwable("Pdf has been corrupted"))
+            if (data.scheme.equals("content", true)) {
+                val file = File(cacheDir, data.path!!.split("/").last() + ".pdf") // or get MimeType
+                file.createNewFile()
+                FileOutputStream(file).let { outputStream ->
+                    contentResolver.openInputStream(data)?.let { inputStream ->
+                        inputStream.copyTo(outputStream)
+                        inputStream.close()
+                    }
+                    outputStream.flush()
+                    outputStream.close()
                 }
+                if (file.exists()) {
+                    showLoading(true)
+                    isUrl = false
+                    mBinding.pdfView.rendererFile(file)
+                    return@registerForActivityResult
+                }
+            } else {
+                val cursor = contentResolver.query(data, arrayOf("_data"), null, null, null)
+                if (cursor?.moveToFirst() == true) {
+                    val index = cursor.getColumnIndex("_data")
+                    val path = cursor.getString(index)
+                    if (path != null) {
+                        mBinding.pdfView.rendererFile(File(path))
+                        isUrl = false
+                        showLoading(true)
+                        return@registerForActivityResult
+                    }
+                }
+                cursor?.close()
             }
-            cursor?.close()
+            mPdfStatusListener.onError(Throwable("Pdf has been corrupted"))
         }
     }
 
@@ -71,7 +90,8 @@ class PdfActivity : AppCompatActivity() {
         mBinding = ActivityPdfBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
 
-        mBinding.pdfView.setStatusListener(mPdfStatusListener)
+        mBinding.pdfView.setStatusListener(mPdfStatusListener).setRatio(2)
+
         mBinding.btnOpenUrl.setOnClickListener {
             mBinding.progressBarDownload.visibility = View.VISIBLE
             mBinding.pdfView.rendererUrl(mPdfUrl)
@@ -89,7 +109,7 @@ class PdfActivity : AppCompatActivity() {
                 PdfDocumentAdapter(PdfDocumentAdapter.TYPE.URL, mPdfUrl)
 //                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mBinding.pdfView.getFilePath())
             } else {
-                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mFilePath)
+                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mBinding.pdfView.getFilePath())
             }
             (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("MVVM PDF Print", documentAdapter, null)
         }
@@ -116,6 +136,7 @@ class PdfActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        cacheDir.deleteRecursively()
         mBinding.pdfView.closePdfRender()
     }
 

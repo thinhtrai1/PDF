@@ -15,11 +15,11 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.BufferedInputStream
 import java.io.File
+import java.io.IOException
 import java.net.URL
 
 class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : RecyclerView(mContext, attrs) {
-    private var mListener: StatusCallBack? = null
-    private val mAdapter = Adapter(mContext)
+    private val mAdapter = Adapter(mContext, null, 1)
     private var mFilePath: String? = null
 
     init {
@@ -34,15 +34,20 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         }
     }
 
-    fun setStatusListener(listener: StatusCallBack) {
-        mListener = listener
-        mAdapter.setStatusListener(listener)
+    fun setStatusListener(listener: StatusCallBack): PdfRendererView {
+        mAdapter.listener = listener
+        return this
+    }
+
+    fun setRatio(ratio: Int): PdfRendererView {
+        mAdapter.ratio = ratio
+        return this
     }
 
     fun getFilePath() = mFilePath
 
     fun rendererUrl(url: String) {
-        mListener?.onDownloadProgress(0)
+        mAdapter.listener?.onDownloadProgress(0)
         GlobalScope.launch(Dispatchers.IO) {
             val outputFile = File(mContext.cacheDir, "downloaded_pdf.pdf")
             if (outputFile.exists()) {
@@ -63,19 +68,19 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                     downloaded += count
                     val progress = (downloaded * 100F / totalLength).toInt()
                     GlobalScope.launch(Dispatchers.Main) {
-                        mListener?.onDownloadProgress(progress)
+                        mAdapter.listener?.onDownloadProgress(progress)
                     }
                 }
                 outputStream.flush()
                 outputStream.close()
                 inputStream.close()
             } catch (e: Exception) {
-                GlobalScope.launch(Dispatchers.Main) { mListener?.onError(e) }
+                GlobalScope.launch(Dispatchers.Main) { mAdapter.listener?.onError(e) }
                 return@launch
             }
             GlobalScope.launch(Dispatchers.Main) {
                 rendererFile(outputFile)
-                mListener?.onDownloadSuccess()
+                mAdapter.listener?.onDownloadSuccess()
             }
         }
     }
@@ -89,23 +94,23 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         mAdapter.closeRender()
     }
 
-    private class Adapter(private val mContext: Context) : RecyclerView.Adapter<Adapter.ViewHolder>() {
+    private class Adapter(private val mContext: Context, var listener: StatusCallBack?, var ratio: Int) : RecyclerView.Adapter<Adapter.ViewHolder>() {
         private var mPdfRenderer: PdfRenderer? = null
-        private var mListener: StatusCallBack? = null
-        private val mSavedBitmap = HashMap<Int, Bitmap>()
+        private val mSavedBitmap = ArrayList<Bitmap>()
 
         fun rendererFile(file: File) {
-            mPdfRenderer = PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY))
+            try {
+                mPdfRenderer = PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY))
+            } catch (e: IOException) {
+                mPdfRenderer = null
+                listener?.onError(e)
+            }
             mSavedBitmap.clear()
             notifyDataSetChanged()
         }
 
         fun closeRender() {
             mPdfRenderer?.close()
-        }
-
-        fun setStatusListener(listener: StatusCallBack) {
-            mListener = listener
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -126,25 +131,26 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                         setImageBitmap(it)
                     }
                     if (position == 0) {
-                        mListener?.onDisplay()
+                        listener?.onDisplay()
                     }
                 }
             }
         }
 
-        private fun renderPage(pageNo: Int, ratio: Int = 1, onBitmap: (Bitmap?) -> Unit) {
+        private fun renderPage(position: Int, onBitmap: (Bitmap?) -> Unit) {
             GlobalScope.launch(Dispatchers.IO) {
-                synchronized(mPdfRenderer!!) {
-                    mSavedBitmap[pageNo]?.let {
-                        onBitmap(it)
-                        return@launch
-                    }
-                    mPdfRenderer!!.openPage(pageNo).apply {
-                        val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
-                        render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        close()
-                        mSavedBitmap[pageNo] = bitmap
-                        GlobalScope.launch(Dispatchers.Main) { onBitmap(bitmap) }
+                if (position < mSavedBitmap.size) {
+                    onBitmap(mSavedBitmap[position])
+                    return@launch
+                } else {
+                    synchronized(mPdfRenderer!!) {
+                        mPdfRenderer!!.openPage(position).apply {
+                            val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
+                            render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            close()
+                            mSavedBitmap.add(bitmap)
+                            GlobalScope.launch(Dispatchers.Main) { onBitmap(bitmap) }
+                        }
                     }
                 }
             }
