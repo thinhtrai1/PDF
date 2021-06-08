@@ -79,8 +79,8 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 return@launch
             }
             GlobalScope.launch(Dispatchers.Main) {
-                rendererFile(outputFile)
                 mAdapter.listener?.onDownloadSuccess()
+                rendererFile(outputFile)
             }
         }
     }
@@ -99,11 +99,17 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         private val mSavedBitmap = ArrayList<Bitmap>()
 
         fun rendererFile(file: File) {
-            try {
-                mPdfRenderer = PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY))
-            } catch (e: IOException) {
+            val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+            if (descriptor.statSize > 0L) {
+                try {
+                    mPdfRenderer = PdfRenderer(descriptor)
+                } catch (e: IOException) {
+                    mPdfRenderer = null
+                    listener?.onError(Throwable("Pdf has been corrupted"))
+                }
+            } else {
                 mPdfRenderer = null
-                listener?.onError(e)
+                listener?.onError(Throwable("Pdf has been corrupted"))
             }
             mSavedBitmap.clear()
             notifyDataSetChanged()

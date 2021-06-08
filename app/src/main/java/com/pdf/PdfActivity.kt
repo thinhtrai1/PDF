@@ -25,7 +25,7 @@ import java.io.FileOutputStream
 /** for Google-url or SDK < 21, use WebView */
 class PdfActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityPdfBinding
-    private val mPdfUrl = "http://124.47.187.233:82/api/valuation/pdf/feb5ce89-af57-4fc5-88ef-a3b322e9f51e.pdf"
+    private val mPdfUrl = "https://github.com/barteksc/AndroidPdfViewer/files/867321/testingcrashpdf.pdf"
     private var isUrl = true
     private val mPdfStatusListener = object : PdfRendererView.StatusCallBack {
         override fun onDisplay() {
@@ -136,7 +136,6 @@ class PdfActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
-        cacheDir.deleteRecursively()
         mBinding.pdfView.closePdfRender()
     }
 
