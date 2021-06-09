@@ -18,8 +18,8 @@ implementation 'com.github.thinhtrai1:PDF:latest_version'
 
 ### Or
 download this class and customize again the UI your way
-https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/java/com/thinh/deptrai/PdfRendererView.kt
-and your pdf page `R.layout.item_rcv_pdf_page`
+https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/java/com/thinh/deptrai/PdfRendererView.kt  
+and your pdf page `R.layout.item_rcv_pdf_page`  
 https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/res/layout/item_rcv_pdf_page.xml
 
 # Use
