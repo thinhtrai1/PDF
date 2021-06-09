@@ -13,7 +13,7 @@ allprojects {
 ```
 and
 ```
-implementation 'com.github.thinhtrai1:PDF:latest_version'
+implementation 'com.github.thinhtrai1:PDF:1.0'
 ```
 
 ### Or
