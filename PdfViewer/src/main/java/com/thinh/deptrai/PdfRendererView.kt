@@ -46,7 +46,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
 
     fun getFilePath() = mFilePath
 
-    fun rendererUrl(url: String) {
+    fun renderUrl(url: String) {
         mAdapter.listener?.onDownloadProgress(0)
         GlobalScope.launch(Dispatchers.IO) {
             val outputFile = File(mContext.cacheDir, "downloaded_pdf.pdf")
@@ -55,8 +55,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             }
             try {
                 val bufferSize = 8192
-                val pdfUrl = URL(url)
-                val connection = pdfUrl.openConnection().apply { connect() }
+                val connection = URL(url).openConnection().apply { connect() }
                 val totalLength = connection.contentLength
                 val inputStream = BufferedInputStream(connection.getInputStream(), bufferSize)
                 val outputStream = outputFile.outputStream()
@@ -80,14 +79,14 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             }
             GlobalScope.launch(Dispatchers.Main) {
                 mAdapter.listener?.onDownloadSuccess()
-                rendererFile(outputFile)
+                renderFile(outputFile)
             }
         }
     }
 
-    fun rendererFile(file: File) {
+    fun renderFile(file: File) {
         mFilePath = file.path
-        mAdapter.rendererFile(file)
+        mAdapter.renderFile(file)
     }
 
     fun closePdfRender() {
@@ -98,7 +97,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         private var mPdfRenderer: PdfRenderer? = null
         private val mSavedBitmap = ArrayList<Bitmap>()
 
-        fun rendererFile(file: File) {
+        fun renderFile(file: File) {
             val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
             if (descriptor.statSize > 0L) {
                 try {

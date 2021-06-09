@@ -64,7 +64,7 @@ class PdfActivity : AppCompatActivity() {
                 if (file.exists()) {
                     showLoading(true)
                     isUrl = false
-                    mBinding.pdfView.rendererFile(file)
+                    mBinding.pdfView.renderFile(file)
                     return@registerForActivityResult
                 }
             } else {
@@ -73,7 +73,7 @@ class PdfActivity : AppCompatActivity() {
                     val index = cursor.getColumnIndex("_data")
                     val path = cursor.getString(index)
                     if (path != null) {
-                        mBinding.pdfView.rendererFile(File(path))
+                        mBinding.pdfView.renderFile(File(path))
                         isUrl = false
                         showLoading(true)
                         return@registerForActivityResult
@@ -94,7 +94,7 @@ class PdfActivity : AppCompatActivity() {
 
         mBinding.btnOpenUrl.setOnClickListener {
             mBinding.progressBarDownload.visibility = View.VISIBLE
-            mBinding.pdfView.rendererUrl(mPdfUrl)
+            mBinding.pdfView.renderUrl(mPdfUrl)
             isUrl = true
         }
         mBinding.btnOpenFile.setOnClickListener {
@@ -120,7 +120,7 @@ class PdfActivity : AppCompatActivity() {
 
     private fun openFile() {
         startPdfFileForResult.launch(Intent.createChooser(
-            Intent(Intent.ACTION_GET_CONTENT).setType("application/pdf").addCategory(Intent.CATEGORY_OPENABLE), "Select Picture"))
+            Intent(Intent.ACTION_GET_CONTENT).setType("application/pdf").addCategory(Intent.CATEGORY_OPENABLE), "Select Document"))
     }
 
     private fun showLoading(show: Boolean) {
