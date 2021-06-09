@@ -1,10 +1,10 @@
-# PdfViewer
+# PdfRenderer
 A simple PDF viewer. Can use for url or local file. Extended from RecyclerView and PdfRenderer.
 
 <img src="https://github.com/thinhtrai1/PDF/blob/master/warning.svg"/>
 
 [![Release](https://jitpack.io/v/thinhtrai1/PDF.svg)](https://jitpack.io/#thinhtrai1/PDF)
-## Dependency
+# Dependency
 ```
 allprojects {
     repositories {
@@ -22,12 +22,18 @@ download this class to customize again the UI your way
 https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/java/com/thinh/deptrai/PdfRendererView.kt  
 and your pdf page in `R.layout.item_rcv_pdf_page`  
 https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/res/layout/item_rcv_pdf_page.xml
-## Use
+# Use
 ```
 <com.thinh.deptrai.PdfRendererView
     android:id="@+id/pdfView"
     android:layout_width="match_parent"
     android:layout_height="match_parent" />
 ```
-## Source
+and
+```
+pdfView.setStatusListener(mListener).setRatio(mRatio)
+```
+and
+```pdfView.renderFile(mFile)``` or ```pdfView.renderUrl(mUrl)```
+# Source
 https://github.com/afreakyelf/Pdf-Viewer.git
