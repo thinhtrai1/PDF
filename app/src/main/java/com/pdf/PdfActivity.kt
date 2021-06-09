@@ -7,9 +7,11 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.pdf.PdfDocument
+import android.net.Uri
 import android.os.Bundle
 import android.print.PrintManager
 import android.view.View
+import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,9 +20,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.pdf.databinding.ActivityPdfBinding
 import com.thinh.deptrai.PdfRendererView
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
-
+import java.net.URL
 
 /** for Google-url or SDK < 21, use WebView */
 class PdfActivity : AppCompatActivity() {
@@ -116,11 +121,35 @@ class PdfActivity : AppCompatActivity() {
         mBinding.btnPrintScreen.setOnClickListener {
             print(mBinding.root)
         }
+
+        intent.getParcelableExtra<Uri?>(Intent.EXTRA_STREAM)?.let {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 101)
+            } else {
+                showLoading(true)
+                isUrl = false
+                mBinding.pdfView.renderFile(File(it.path!!))
+            }
+        }
+        intent.getStringExtra(Intent.EXTRA_TEXT)?.let {
+            GlobalScope.launch(Dispatchers.IO) {
+                if ((URLUtil.isHttpUrl(it) || URLUtil.isHttpsUrl(it)) && URL(it).openConnection().getHeaderField("Content-Type") == "application/pdf") {
+                    GlobalScope.launch(Dispatchers.Main) {
+                        mBinding.progressBarDownload.visibility = View.VISIBLE
+                        mBinding.pdfView.renderUrl(it)
+                        isUrl = true
+                    }
+                }
+            }
+        }
     }
 
     private fun openFile() {
-        startPdfFileForResult.launch(Intent.createChooser(
-            Intent(Intent.ACTION_GET_CONTENT).setType("application/pdf").addCategory(Intent.CATEGORY_OPENABLE), "Select Document"))
+        startPdfFileForResult.launch(
+            Intent.createChooser(
+                Intent(Intent.ACTION_GET_CONTENT).setType("application/pdf").addCategory(Intent.CATEGORY_OPENABLE), "Select Document"
+            )
+        )
     }
 
     private fun showLoading(show: Boolean) {
@@ -129,8 +158,15 @@ class PdfActivity : AppCompatActivity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == 100 && grantResults.isNotEmpty()) {
-            openFile()
+        if (grantResults.isNotEmpty()) {
+            when (requestCode) {
+                100 -> openFile()
+                101 -> {
+                    showLoading(true)
+                    isUrl = false
+                    mBinding.pdfView.renderFile(File(intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!!.path!!))
+                }
+            }
         }
     }
 

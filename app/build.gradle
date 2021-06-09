@@ -38,6 +38,6 @@ dependencies {
     implementation 'androidx.cardview:cardview:1.0.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.2'
 
-//    implementation 'com.github.thinhtrai1:PDF:1.0'
     implementation project(path: ":PdfViewer")
+//    implementation 'com.github.thinhtrai1:PDF:1.0'
 }
