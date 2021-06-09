@@ -44,6 +44,15 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         return this
     }
 
+    fun setOrientation(isHorizontal: Boolean): PdfRendererView {
+        layoutManager = if (isHorizontal) {
+            LinearLayoutManager(mContext,  LinearLayoutManager.HORIZONTAL, false)
+        } else {
+            LinearLayoutManager(mContext)
+        }
+        return this
+    }
+
     fun getFilePath() = mFilePath
 
     fun renderUrl(url: String) {
@@ -96,6 +105,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     private class Adapter(private val mContext: Context, var listener: StatusCallBack?, var ratio: Int) : RecyclerView.Adapter<Adapter.ViewHolder>() {
         private var mPdfRenderer: PdfRenderer? = null
         private val mSavedBitmap = ArrayList<Bitmap>()
+        private var isDisplayed = false
 
         fun renderFile(file: File) {
             val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -110,6 +120,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 mPdfRenderer = null
                 listener?.onError(Throwable("Pdf has been corrupted"))
             }
+            isDisplayed = false
             mSavedBitmap.clear()
             notifyDataSetChanged()
         }
@@ -130,10 +141,13 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             with(holder.view) {
                 visibility = View.GONE
                 renderPage(position) {
-                    visibility = View.VISIBLE
-                    findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
-                    if (position == 0) {
-                        listener?.onDisplay()
+                    GlobalScope.launch(Dispatchers.Main) {
+                        visibility = View.VISIBLE
+                        findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
+                        if (!isDisplayed) {
+                            isDisplayed = true
+                            listener?.onDisplay()
+                        }
                     }
                 }
             }
@@ -151,7 +165,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                             render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             close()
                             mSavedBitmap.add(bitmap)
-                            GlobalScope.launch(Dispatchers.Main) { onBitmap(bitmap) }
+                            onBitmap(bitmap)
                         }
                     }
                 }
