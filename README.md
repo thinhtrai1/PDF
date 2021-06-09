@@ -2,7 +2,7 @@
 # PdfViewer
 A simple PDF viewer. Can use for url or local file. Extended from RecyclerView and PdfRenderer.
 
-# Dependency
+## Dependency
 ```
 allprojects {
     repositories {
@@ -19,10 +19,10 @@ implementation 'com.github.thinhtrai1:PDF:latest_version'
 ### Or
 download this class and customize again the UI your way
 https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/java/com/thinh/deptrai/PdfRendererView.kt  
-and your pdf page `R.layout.item_rcv_pdf_page`  
+and your pdf page in `R.layout.item_rcv_pdf_page`  
 https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/res/layout/item_rcv_pdf_page.xml
 
-# Use
+## Use
 ```
 <com.thinh.deptrai.PdfRendererView
     android:id="@+id/pdfView"
@@ -30,5 +30,5 @@ https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/res/layout/item
     android:layout_height="match_parent" />
 ```
 
-# Source
+## Source
 https://github.com/afreakyelf/Pdf-Viewer.git
