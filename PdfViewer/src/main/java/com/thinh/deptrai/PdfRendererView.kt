@@ -19,7 +19,7 @@ import java.io.IOException
 import java.net.URL
 
 class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : RecyclerView(mContext, attrs) {
-    private val mAdapter = Adapter(mContext, null, 1)
+    private val mAdapter = Adapter(mContext, null, 2)
     private var mFilePath: String? = null
 
     init {
@@ -131,10 +131,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 visibility = View.GONE
                 renderPage(position) {
                     visibility = View.VISIBLE
-                    findViewById<ImageView>(R.id.imvPage).apply {
-                        adjustViewBounds = true
-                        setImageBitmap(it)
-                    }
+                    findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
                     if (position == 0) {
                         listener?.onDisplay()
                     }
