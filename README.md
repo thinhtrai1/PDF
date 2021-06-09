@@ -1,7 +1,8 @@
-# PdfViewer [![Release](https://jitpack.io/v/thinhtrai1/PDF.svg)](https://jitpack.io/#thinhtrai1/PDF)
+# PdfViewer
 A simple PDF viewer. Can use for url or local file. Extended from RecyclerView and PdfRenderer.
 
 <img src="https://github.com/thinhtrai1/PDF/blob/master/warning.svg"/>
+[![Release](https://jitpack.io/v/thinhtrai1/PDF.svg)](https://jitpack.io/#thinhtrai1/PDF)
 
 ## Dependency
 ```
