@@ -95,31 +95,33 @@ class PdfActivity : AppCompatActivity() {
         mBinding = ActivityPdfBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
 
-        mBinding.pdfView.setStatusListener(mPdfStatusListener).setRatio(2)
+        with(mBinding) {
+            pdfView.setStatusListener(mPdfStatusListener).setRatio(2)
 
-        mBinding.btnOpenUrl.setOnClickListener {
-            mBinding.progressBarDownload.visibility = View.VISIBLE
-            mBinding.pdfView.renderUrl(mPdfUrl)
-            isUrl = true
-        }
-        mBinding.btnOpenFile.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 100)
-            } else {
-                openFile()
+            btnOpenUrl.setOnClickListener {
+                progressBarDownload.visibility = View.VISIBLE
+                pdfView.renderUrl(mPdfUrl)
+                isUrl = true
             }
-        }
-        mBinding.btnPrint.setOnClickListener {
-            val documentAdapter = if (isUrl) {
-                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.URL, mPdfUrl)
-//                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mBinding.pdfView.getFilePath())
-            } else {
-                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, mBinding.pdfView.getFilePath())
+            btnOpenFile.setOnClickListener {
+                if (ContextCompat.checkSelfPermission(this@PdfActivity, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                    ActivityCompat.requestPermissions(this@PdfActivity, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 100)
+                } else {
+                    openFile()
+                }
             }
-            (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("MVVM PDF Print", documentAdapter, null)
-        }
-        mBinding.btnPrintScreen.setOnClickListener {
-            print(mBinding.root)
+            btnPrint.setOnClickListener {
+                val documentAdapter = if (isUrl) {
+                    PdfDocumentAdapter(PdfDocumentAdapter.TYPE.URL, mPdfUrl)
+//                PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, pdfView.getFilePath())
+                } else {
+                    PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, pdfView.getFilePath())
+                }
+                (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("MVVM PDF Print", documentAdapter, null)
+            }
+            btnPrintScreen.setOnClickListener {
+                print(root)
+            }
         }
 
         intent.getParcelableExtra<Uri?>(Intent.EXTRA_STREAM)?.let {

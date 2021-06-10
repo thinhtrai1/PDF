@@ -34,22 +34,13 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         }
     }
 
-    fun setStatusListener(listener: StatusCallBack): PdfRendererView {
+    fun setStatusListener(listener: StatusCallBack?): PdfRendererView {
         mAdapter.listener = listener
         return this
     }
 
     fun setRatio(ratio: Int): PdfRendererView {
         mAdapter.ratio = ratio
-        return this
-    }
-
-    fun setOrientation(isHorizontal: Boolean): PdfRendererView {
-        layoutManager = if (isHorizontal) {
-            LinearLayoutManager(mContext,  LinearLayoutManager.HORIZONTAL, false)
-        } else {
-            LinearLayoutManager(mContext)
-        }
         return this
     }
 
