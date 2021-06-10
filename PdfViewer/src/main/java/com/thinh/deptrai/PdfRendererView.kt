@@ -15,6 +15,7 @@ import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import java.io.BufferedInputStream
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.net.URL
 
@@ -34,7 +35,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         }
     }
 
-    fun setStatusListener(listener: StatusCallBack?): PdfRendererView {
+    fun setStatusListener(listener: StatusListener?): PdfRendererView {
         mAdapter.listener = listener
         return this
     }
@@ -49,25 +50,24 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     fun renderUrl(url: String) {
         mAdapter.listener?.onDownloadProgress(0)
         GlobalScope.launch(Dispatchers.IO) {
-            val outputFile = File(mContext.cacheDir, "downloaded_pdf.pdf")
-            if (outputFile.exists()) {
-                outputFile.delete()
+            val file = File(mContext.cacheDir, "new.pdf")
+            if (file.exists()) {
+                file.delete()
             }
             try {
                 val bufferSize = 8192
                 val connection = URL(url).openConnection().apply { connect() }
                 val totalLength = connection.contentLength
                 val inputStream = BufferedInputStream(connection.getInputStream(), bufferSize)
-                val outputStream = outputFile.outputStream()
-                val data = ByteArray(bufferSize)
-                var downloaded = 0
-                var count: Int
-                while (inputStream.read(data).also { count = it } != -1) {
-                    outputStream.write(data, 0, count)
-                    downloaded += count
-                    val progress = (downloaded * 100F / totalLength).toInt()
+                val outputStream = FileOutputStream(file)
+                val bytesBuffer = ByteArray(bufferSize)
+                var bytesCopied = 0
+                var bytes: Int
+                while (inputStream.read(bytesBuffer).also { bytes = it } != -1) {
+                    outputStream.write(bytesBuffer, 0, bytes)
+                    bytesCopied += bytes
                     GlobalScope.launch(Dispatchers.Main) {
-                        mAdapter.listener?.onDownloadProgress(progress)
+                        mAdapter.listener?.onDownloadProgress((bytesCopied * 100F / totalLength).toInt())
                     }
                 }
                 outputStream.flush()
@@ -79,7 +79,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             }
             GlobalScope.launch(Dispatchers.Main) {
                 mAdapter.listener?.onDownloadSuccess()
-                renderFile(outputFile)
+                renderFile(file)
             }
         }
     }
@@ -93,9 +93,9 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         mAdapter.closeRender()
     }
 
-    private class Adapter(private val mContext: Context, var listener: StatusCallBack?, var ratio: Int) : RecyclerView.Adapter<Adapter.ViewHolder>() {
+    private class Adapter(private val mContext: Context, var listener: StatusListener?, var ratio: Int) : RecyclerView.Adapter<Adapter.ViewHolder>() {
         private var mPdfRenderer: PdfRenderer? = null
-        private val mSavedBitmap = ArrayList<Bitmap>()
+        private val mSavedBitmap = HashMap<Int, Bitmap>()
         private var isDisplayed = false
 
         fun renderFile(file: File) {
@@ -103,6 +103,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             if (descriptor.statSize > 0L) {
                 try {
                     mPdfRenderer = PdfRenderer(descriptor)
+                    isDisplayed = false
                 } catch (e: IOException) {
                     mPdfRenderer = null
                     listener?.onError(Throwable("Pdf has been corrupted"))
@@ -111,7 +112,6 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 mPdfRenderer = null
                 listener?.onError(Throwable("Pdf has been corrupted"))
             }
-            isDisplayed = false
             mSavedBitmap.clear()
             notifyDataSetChanged()
         }
@@ -129,36 +129,25 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            with(holder.view) {
-                visibility = View.GONE
-                renderPage(position) {
-                    visibility = View.VISIBLE
-                    findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
-                    if (!isDisplayed) {
-                        isDisplayed = true
-                        listener?.onDisplay()
-                    }
-                }
-            }
-        }
-
-        private fun renderPage(position: Int, onBitmap: (Bitmap?) -> Unit) {
-            if (position < mSavedBitmap.size) {
-                onBitmap(mSavedBitmap[position])
+            mSavedBitmap[position]?.let {
+                holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(mSavedBitmap[position])
                 return
-            } else {
-                GlobalScope.launch(Dispatchers.IO) {
-                    synchronized(mPdfRenderer!!) {
-                        try {
-                            mPdfRenderer!!.openPage(position)
-                        } catch (e: IllegalStateException) {
-                            return@launch
-                        }.apply {
-                            val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
-                            render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                            close()
-                            mSavedBitmap.add(bitmap)
-                            GlobalScope.launch(Dispatchers.Main) { onBitmap(bitmap) }
+            }
+            holder.view.visibility = View.GONE
+            GlobalScope.launch(Dispatchers.IO) {
+                synchronized(mPdfRenderer!!) {
+                    mPdfRenderer!!.openPage(position).apply {
+                        val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
+                        render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                        close()
+                        mSavedBitmap[position] = bitmap
+                        GlobalScope.launch(Dispatchers.Main) {
+                            holder.view.visibility = View.VISIBLE
+                            holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(bitmap)
+                            if (!isDisplayed) {
+                                isDisplayed = true
+                                listener?.onDisplay()
+                            }
                         }
                     }
                 }
@@ -181,12 +170,6 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     private val mScaleDetector = ScaleGestureDetector(mContext, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             mScaleFactor = 1.0f.coerceAtLeast((mScaleFactor * detector.scaleFactor).coerceAtMost(3.0f))
-            if (mScaleFactor < 3f) {
-                val diffX = detector.focusX - mPosX
-                val diffY = detector.focusY - mPosY
-                mPosX -= diffX * detector.scaleFactor - diffX
-                mPosY -= diffY * detector.scaleFactor - diffY
-            }
             maxWidth = width - width * mScaleFactor
             maxHeight = height - height * mScaleFactor
             invalidate()
@@ -202,8 +185,8 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
 
     override fun onTouchEvent(ev: MotionEvent): Boolean {
         super.onTouchEvent(ev)
-        val action = ev.action
         mScaleDetector.onTouchEvent(ev)
+        val action = ev.action
         when (action and MotionEvent.ACTION_MASK) {
             MotionEvent.ACTION_DOWN -> {
                 mLastTouchX =  ev.x
@@ -244,14 +227,6 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         return true
     }
 
-    override fun onDraw(canvas: Canvas) {
-        super.onDraw(canvas)
-        canvas.save()
-        canvas.translate(mPosX, mPosY)
-        canvas.scale(mScaleFactor, mScaleFactor)
-        canvas.restore()
-    }
-
     override fun dispatchDraw(canvas: Canvas) {
         canvas.save()
         if (mScaleFactor == 1.0f) {
@@ -265,7 +240,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
 //        invalidate()
     }
 
-    interface StatusCallBack {
+    interface StatusListener {
         fun onDownloadProgress(progress: Int) {}
         fun onDownloadSuccess() {}
         fun onDisplay() {}

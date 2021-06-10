@@ -32,7 +32,7 @@ class PdfActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityPdfBinding
     private val mPdfUrl = "https://github.com/barteksc/AndroidPdfViewer/files/867321/testingcrashpdf.pdf"
     private var isUrl = true
-    private val mPdfStatusListener = object : PdfRendererView.StatusCallBack {
+    private val mPdfStatusListener = object : PdfRendererView.StatusListener {
         override fun onDisplay() {
             showLoading(false)
         }
@@ -181,7 +181,7 @@ class PdfActivity : AppCompatActivity() {
     private fun print(view: View) {
         val viewWidth = view.width
         val viewHeight = view.height
-        val pageHeight = (view.width * 1.4142).toInt()
+        val pageHeight = (view.width * 1.4142135).toInt()
         val pageCount = viewHeight / pageHeight
         val pageInfo = PdfDocument.PageInfo.Builder(viewWidth, pageHeight, 1).create()
         val bitmap = Bitmap.createBitmap(viewWidth, viewHeight, Bitmap.Config.ARGB_8888).also { view.draw(Canvas(it)) }
