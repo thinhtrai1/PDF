@@ -43,7 +43,9 @@ pdfView.renderUrl(mUrl)
 ```  
 #### Options
 ```
-pdfView.setStatusListener(mListener).setRatio(mRatio) // is the ratio to the screen, depending on the view size, reduce it to increase performance, default is 2
+pdfView.setStatusListener(mListener).setRatio(mRatio)
+// ratio is the ratio in the screen, depending on the view size, reduce it to increase performance, default is 2,
+// recommended should only be 1 or 2, ratio 3 or higher can cause an OutOfMemoryError in case too many large images have to be processed at once.
 ```
 #### For horizontal views or gridviews, customize your layoutManager:  
 ```kotlin 
@@ -52,7 +54,8 @@ pdfView.layoutManager = LinearLayoutManager(context, LinearLayoutManager.HORIZON
 ```
 pdfView.layoutManager = GridLayoutManager(context, 2)
 ```
-<p align="center"><img src="https://github.com/thinhtrai1/PDF/blob/master/device-2021-06-10-082645.png" width="360" height="640" /></p>
+<p align="center"><img src="https://github.com/thinhtrai1/PDF/blob/master/device-2021-06-10-082645.png" width="270" height="480" />
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<img src="https://github.com/thinhtrai1/PDF/blob/master/device-2021-06-10-093603.png" width="270" height="480" /></p>
 <br>  
 <br>
 <h1>Source</h1>
