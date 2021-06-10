@@ -132,24 +132,22 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             with(holder.view) {
                 visibility = View.GONE
                 renderPage(position) {
-                    GlobalScope.launch(Dispatchers.Main) {
-                        visibility = View.VISIBLE
-                        findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
-                        if (!isDisplayed) {
-                            isDisplayed = true
-                            listener?.onDisplay()
-                        }
+                    visibility = View.VISIBLE
+                    findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
+                    if (!isDisplayed) {
+                        isDisplayed = true
+                        listener?.onDisplay()
                     }
                 }
             }
         }
 
         private fun renderPage(position: Int, onBitmap: (Bitmap?) -> Unit) {
-            GlobalScope.launch(Dispatchers.IO) {
-                if (position < mSavedBitmap.size) {
-                    onBitmap(mSavedBitmap[position])
-                    return@launch
-                } else {
+            if (position < mSavedBitmap.size) {
+                onBitmap(mSavedBitmap[position])
+                return
+            } else {
+                GlobalScope.launch(Dispatchers.IO) {
                     synchronized(mPdfRenderer!!) {
                         try {
                             mPdfRenderer!!.openPage(position)
@@ -160,7 +158,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                             render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             close()
                             mSavedBitmap.add(bitmap)
-                            onBitmap(bitmap)
+                            GlobalScope.launch(Dispatchers.Main) { onBitmap(bitmap) }
                         }
                     }
                 }
