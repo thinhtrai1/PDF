@@ -136,8 +136,17 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             holder.view.visibility = View.GONE
             GlobalScope.launch(Dispatchers.IO) {
                 synchronized(mPdfRenderer!!) {
-                    mPdfRenderer!!.openPage(position).apply {
-                        val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
+                    try {
+                        mPdfRenderer!!.openPage(position)
+                    } catch (e: IllegalStateException) {
+                        return@launch
+                    }.apply {
+                        val bitmap = try {
+                            Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
+                        } catch (e: OutOfMemoryError) {
+                            close()
+                            return@launch
+                        }
                         render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         close()
                         mSavedBitmap[position] = bitmap
