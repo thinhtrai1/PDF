@@ -34,7 +34,13 @@ https://github.com/thinhtrai1/PDF/blob/master/PdfViewer/src/main/res/layout/item
     android:layout_height="match_parent" />
 ```
 and
-```pdfView.renderFile(mFile)``` or ```pdfView.renderUrl(mUrl)```  
+```
+pdfView.renderFile(mFile)
+```
+or
+```
+pdfView.renderUrl(mUrl)
+```  
 #### Options
 ```
 pdfView.setStatusListener(mListener).setRatio(mRatio) // is the ratio to the screen, depending on the view size, reduce it to increase performance, default is 2
