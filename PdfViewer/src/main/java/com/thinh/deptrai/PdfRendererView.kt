@@ -40,7 +40,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     }
 
     fun setRatio(ratio: Int): PdfRendererView {
-        mAdapter.ratio = ratio
+        mAdapter.ratio = if (ratio > 0) ratio else 1
         return this
     }
 
@@ -151,7 +151,11 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                     return@launch
                 } else {
                     synchronized(mPdfRenderer!!) {
-                        mPdfRenderer!!.openPage(position).apply {
+                        try {
+                            mPdfRenderer!!.openPage(position)
+                        } catch (e: IllegalStateException) {
+                            return@launch
+                        }.apply {
                             val bitmap = Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
                             render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             close()
