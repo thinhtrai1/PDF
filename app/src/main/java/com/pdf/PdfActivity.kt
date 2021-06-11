@@ -96,7 +96,7 @@ class PdfActivity : AppCompatActivity() {
         setContentView(mBinding.root)
 
         with(mBinding) {
-            pdfView.setStatusListener(mPdfStatusListener).setRatio(2)
+            pdfView.setStatusListener(mPdfStatusListener).setRatio(2F)
 
             btnOpenUrl.setOnClickListener {
                 progressBarDownload.visibility = View.VISIBLE

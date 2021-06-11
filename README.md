@@ -44,8 +44,8 @@ pdfView.renderUrl(mUrl)
 #### Options
 ```java
 pdfView.setStatusListener(mListener).setRatio(mRatio)
-// ratio is the ratio in the screen, depending on the view size, reduce it to increase performance, default is 2,
-// recommended should only be 1 or 2, ratio 3 or higher can cause an OutOfMemoryError resulting in display error on some devices in case having to process too many pages.
+// ratio is the ratio in the screen, depending on the view size, reduce it to increase performance, default is 2.
+// careful: ratio 3 or higher can cause an OutOfMemoryError resulting in display error on some devices in case having to process too many pages.
 ```
 #### For horizontal views or gridviews, customize your layoutManager:  
 ```kotlin 

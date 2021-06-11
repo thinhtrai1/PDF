@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
 import android.util.AttributeSet
+import android.util.LruCache
 import android.view.*
 import android.widget.ImageView
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -20,7 +21,7 @@ import java.io.IOException
 import java.net.URL
 
 class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : RecyclerView(mContext, attrs) {
-    private val mAdapter = Adapter(mContext, null, 2)
+    private val mAdapter = Adapter(mContext, null, 2F)
     private var mFilePath: String? = null
 
     init {
@@ -40,8 +41,8 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         return this
     }
 
-    fun setRatio(ratio: Int): PdfRendererView {
-        mAdapter.ratio = if (ratio > 0) ratio else 1
+    fun setRatio(ratio: Float): PdfRendererView {
+        mAdapter.ratio = if (ratio > 0) ratio else 1F
         return this
     }
 
@@ -93,10 +94,14 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         mAdapter.closeRender()
     }
 
-    private class Adapter(private val mContext: Context, var listener: StatusListener?, var ratio: Int) : RecyclerView.Adapter<Adapter.ViewHolder>() {
+    private class Adapter(private val mContext: Context, var listener: StatusListener?, var ratio: Float) : RecyclerView.Adapter<Adapter.ViewHolder>() {
         private var mPdfRenderer: PdfRenderer? = null
-        private val mSavedBitmap = HashMap<Int, Bitmap>()
         private var isDisplayed = false
+        private val mSavedBitmap = object : LruCache<Int, Bitmap>((Runtime.getRuntime().maxMemory() / 1024).toInt() / 2) {
+            override fun sizeOf(key: Int, bitmap: Bitmap): Int {
+                return bitmap.byteCount / 1024
+            }
+        }
 
         fun renderFile(file: File) {
             val descriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
@@ -112,7 +117,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                 mPdfRenderer = null
                 listener?.onError(Throwable("Pdf has been corrupted"))
             }
-            mSavedBitmap.clear()
+            mSavedBitmap.evictAll()
             notifyDataSetChanged()
         }
 
@@ -130,10 +135,11 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             mSavedBitmap[position]?.let {
-                holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(mSavedBitmap[position])
+                holder.view.visibility = View.VISIBLE
+                holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
                 return
             }
-            holder.view.visibility = View.GONE
+            holder.view.visibility = View.INVISIBLE
             GlobalScope.launch(Dispatchers.IO) {
                 synchronized(mPdfRenderer!!) {
                     try {
@@ -142,14 +148,14 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                         return@launch
                     }.apply {
                         val bitmap = try {
-                            Bitmap.createBitmap(width * ratio, height * ratio, Bitmap.Config.ARGB_8888)
+                            Bitmap.createBitmap((width * ratio).toInt(), (height * ratio).toInt(), Bitmap.Config.ARGB_8888)
                         } catch (e: OutOfMemoryError) {
                             close()
                             return@launch
                         }
                         render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                         close()
-                        mSavedBitmap[position] = bitmap
+                        mSavedBitmap.put(position, bitmap)
                         GlobalScope.launch(Dispatchers.Main) {
                             holder.view.visibility = View.VISIBLE
                             holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(bitmap)
@@ -178,7 +184,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     private var height = 0f
     private val mScaleDetector = ScaleGestureDetector(mContext, object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScale(detector: ScaleGestureDetector): Boolean {
-            mScaleFactor = 1.0f.coerceAtLeast((mScaleFactor * detector.scaleFactor).coerceAtMost(3.0f))
+            mScaleFactor = 1.0f.coerceAtLeast((mScaleFactor * detector.scaleFactor).coerceAtMost(5.0f))
             maxWidth = width - width * mScaleFactor
             maxHeight = height - height * mScaleFactor
             invalidate()
