@@ -117,7 +117,7 @@ class PdfActivity : AppCompatActivity() {
                 } else {
                     PdfDocumentAdapter(PdfDocumentAdapter.TYPE.File, pdfView.getFilePath())
                 }
-                (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("MVVM PDF Print", documentAdapter, null)
+                (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("PDF Print", documentAdapter, null)
             }
             btnPrintScreen.setOnClickListener {
                 print(root)
@@ -196,7 +196,7 @@ class PdfActivity : AppCompatActivity() {
                 it.finishPage(page)
             }
         }
-        (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("PDF App Print", documentAdapter, null)
+        (getSystemService(Context.PRINT_SERVICE) as PrintManager).print("PDF Print", documentAdapter, null)
     }
 
     // for once page

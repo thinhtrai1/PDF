@@ -31,7 +31,6 @@ class PdfDocumentAdapter(
         }
     }
 
-    // for PDF Document
     override fun onWrite(pages: Array<PageRange>, destination: ParcelFileDescriptor, cancellationSignal: CancellationSignal, callback: WriteResultCallback) {
         if (mType == TYPE.Document) {
             val pdfDocument = PdfDocument().apply { writeDocument?.invoke(this) }
