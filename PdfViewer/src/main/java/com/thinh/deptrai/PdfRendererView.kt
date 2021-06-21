@@ -51,29 +51,25 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     fun renderUrl(url: String) {
         mAdapter.listener?.onDownloadProgress(0)
         GlobalScope.launch(Dispatchers.IO) {
-            val file = File(mContext.cacheDir, "new.pdf")
-            if (file.exists()) {
-                file.delete()
-            }
+            val file = File(mContext.cacheDir, "temp.pdf")
             try {
                 val bufferSize = 8192
                 val connection = URL(url).openConnection().apply { connect() }
                 val totalLength = connection.contentLength
-                val inputStream = BufferedInputStream(connection.getInputStream(), bufferSize)
-                val outputStream = FileOutputStream(file)
                 val bytesBuffer = ByteArray(bufferSize)
                 var bytesCopied = 0
                 var bytes: Int
-                while (inputStream.read(bytesBuffer).also { bytes = it } != -1) {
-                    outputStream.write(bytesBuffer, 0, bytes)
-                    bytesCopied += bytes
-                    GlobalScope.launch(Dispatchers.Main) {
-                        mAdapter.listener?.onDownloadProgress((bytesCopied * 100F / totalLength).toInt())
+                FileOutputStream(file).use { outputStream ->
+                    BufferedInputStream(connection.getInputStream(), bufferSize).use { inputStream ->
+                        while (inputStream.read(bytesBuffer).also { bytes = it } != -1) {
+                            outputStream.write(bytesBuffer, 0, bytes)
+                            bytesCopied += bytes
+                            GlobalScope.launch(Dispatchers.Main) {
+                                mAdapter.listener?.onDownloadProgress(bytesCopied * 100 / totalLength)
+                            }
+                        }
                     }
                 }
-                outputStream.flush()
-                outputStream.close()
-                inputStream.close()
             } catch (e: Exception) {
                 GlobalScope.launch(Dispatchers.Main) { mAdapter.listener?.onError(e) }
                 return@launch

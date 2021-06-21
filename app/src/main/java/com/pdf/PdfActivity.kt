@@ -13,7 +13,6 @@ import android.print.PrintManager
 import android.view.View
 import android.webkit.URLUtil
 import android.widget.Toast
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -52,42 +51,17 @@ class PdfActivity : AppCompatActivity() {
             showLoading(true)
         }
     }
-    private val startPdfFileForResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result: ActivityResult ->
-        val data = result.data?.data ?: return@registerForActivityResult
-        if (result.resultCode == -1) {
-            if (data.scheme.equals("content", true)) {
-                val file = File(cacheDir, data.path!!.split("/").last() + ".pdf") // or get MimeType
-                file.createNewFile()
-                FileOutputStream(file).let { outputStream ->
-                    contentResolver.openInputStream(data)?.let { inputStream ->
-                        inputStream.copyTo(outputStream)
-                        inputStream.close()
-                    }
-                    outputStream.flush()
-                    outputStream.close()
-                }
-                if (file.exists()) {
-                    showLoading(true)
-                    isUrl = false
-                    mBinding.pdfView.renderFile(file)
-                    return@registerForActivityResult
-                }
-            } else {
-                val cursor = contentResolver.query(data, arrayOf("_data"), null, null, null)
-                if (cursor?.moveToFirst() == true) {
-                    val index = cursor.getColumnIndex("_data")
-                    val path = cursor.getString(index)
-                    if (path != null) {
-                        mBinding.pdfView.renderFile(File(path))
-                        isUrl = false
-                        showLoading(true)
-                        return@registerForActivityResult
-                    }
-                }
-                cursor?.close()
+    private val startPdfFileForResult = registerForActivityResult(ActivityResultContracts.OpenDocument()) {
+        val data = it ?: return@registerForActivityResult
+        val file = File(cacheDir, "temp.pdf")
+        contentResolver.openInputStream(data)?.use { inputStream ->
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
             }
-            mPdfStatusListener.onError(Throwable("Pdf has been corrupted"))
         }
+        showLoading(true)
+        isUrl = false
+        mBinding.pdfView.renderFile(file)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -147,11 +121,7 @@ class PdfActivity : AppCompatActivity() {
     }
 
     private fun openFile() {
-        startPdfFileForResult.launch(
-            Intent.createChooser(
-                Intent(Intent.ACTION_GET_CONTENT).setType("application/pdf").addCategory(Intent.CATEGORY_OPENABLE), "Select Document"
-            )
-        )
+        startPdfFileForResult.launch(arrayOf("application/pdf"))
     }
 
     private fun showLoading(show: Boolean) {
