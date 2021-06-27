@@ -10,7 +10,9 @@ import android.graphics.pdf.PdfDocument
 import android.net.Uri
 import android.os.Bundle
 import android.print.PrintManager
+import android.util.Log
 import android.view.View
+import android.webkit.MimeTypeMap
 import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,7 +32,9 @@ import java.net.URL
 class PdfActivity : AppCompatActivity() {
     private lateinit var mBinding: ActivityPdfBinding
     private val mPdfUrl = "https://github.com/barteksc/AndroidPdfViewer/files/867321/testingcrashpdf.pdf"
+    private val test = "https://firebasestorage.googleapis.com/v0/b/bestbook-93f2f.appspot.com/o/book%2F1%2Ftiengviet%2FSach%20Giao%20Khoa%20Tieng%20Viet%20lop%201%20Tap%201.pdf?alt=media"
     private var isUrl = true
+    val a = System.currentTimeMillis()
     private val mPdfStatusListener = object : PdfRendererView.StatusListener {
         override fun onDisplay() {
             showLoading(false)
@@ -48,13 +52,18 @@ class PdfActivity : AppCompatActivity() {
 
         override fun onDownloadSuccess() {
             mBinding.progressBarDownload.visibility = View.GONE
+            Log.e("ReadActivity", "" + (System.currentTimeMillis() - a))
             showLoading(true)
         }
     }
     private val startPdfFileForResult = registerForActivityResult(ActivityResultContracts.OpenDocument()) {
         val data = it ?: return@registerForActivityResult
+        renderUri(data)
+    }
+
+    private fun renderUri(uri: Uri) {
         val file = File(cacheDir, "temp.pdf")
-        contentResolver.openInputStream(data)?.use { inputStream ->
+        contentResolver.openInputStream(uri)?.use { inputStream ->
             FileOutputStream(file).use { outputStream ->
                 inputStream.copyTo(outputStream)
             }
@@ -74,7 +83,7 @@ class PdfActivity : AppCompatActivity() {
 
             btnOpenUrl.setOnClickListener {
                 progressBarDownload.visibility = View.VISIBLE
-                pdfView.renderUrl(mPdfUrl)
+                pdfView.renderUrl(test)
                 isUrl = true
             }
             btnOpenFile.setOnClickListener {
@@ -98,6 +107,11 @@ class PdfActivity : AppCompatActivity() {
             }
         }
 
+        intent.data?.let {
+            if (contentResolver.getType(it) == "application/pdf") {
+                renderUri(it)
+            }
+        }
         intent.getParcelableExtra<Uri?>(Intent.EXTRA_STREAM)?.let {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
                 ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 101)
