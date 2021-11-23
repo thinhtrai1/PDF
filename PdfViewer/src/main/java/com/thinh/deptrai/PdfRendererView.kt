@@ -25,7 +25,6 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
     private var mFilePath: String? = null
 
     init {
-        setHasFixedSize(true)
         adapter = mAdapter
         layoutManager = LinearLayoutManager(mContext)
     }
@@ -65,7 +64,7 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
                             outputStream.write(bytesBuffer, 0, bytes)
                             bytesCopied += bytes
                             GlobalScope.launch(Dispatchers.Main) {
-                                mAdapter.listener?.onDownloadProgress(bytesCopied * 100 / totalLength)
+                                mAdapter.listener?.onDownloadProgress((bytesCopied * 100L / totalLength).toInt())
                             }
                         }
                     }
@@ -130,7 +129,8 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            mSavedBitmap[position]?.let {
+            val adapterPosition = holder.bindingAdapterPosition
+            mSavedBitmap[adapterPosition]?.let {
                 holder.view.visibility = View.VISIBLE
                 holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(it)
                 return
@@ -139,19 +139,21 @@ class PdfRendererView(private val mContext: Context, attrs: AttributeSet?) : Rec
             GlobalScope.launch(Dispatchers.IO) {
                 synchronized(mPdfRenderer!!) {
                     try {
-                        mPdfRenderer!!.openPage(position)
+                        mPdfRenderer!!.openPage(adapterPosition)
                     } catch (e: IllegalStateException) {
                         return@launch
-                    }.apply {
-                        val bitmap = try {
+                    }.run {
+                        try {
                             Bitmap.createBitmap((width * ratio).toInt(), (height * ratio).toInt(), Bitmap.Config.ARGB_8888)
                         } catch (e: OutOfMemoryError) {
                             close()
                             return@launch
+                        }.also { bitmap ->
+                            render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            close()
                         }
-                        render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                        close()
-                        mSavedBitmap.put(position, bitmap)
+                    }.let { bitmap ->
+                        mSavedBitmap.put(adapterPosition, bitmap)
                         GlobalScope.launch(Dispatchers.Main) {
                             holder.view.visibility = View.VISIBLE
                             holder.view.findViewById<ImageView>(R.id.imvPage).setImageBitmap(bitmap)
